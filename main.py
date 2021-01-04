@@ -11,7 +11,7 @@ def main():
     win = MainWindow()
 
     # Setup style
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
 
     # Show main window
     win.show()

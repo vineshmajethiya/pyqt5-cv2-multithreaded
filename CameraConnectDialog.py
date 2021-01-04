@@ -6,6 +6,11 @@ import cv2
 from ui_CameraConnectDialog import Ui_CameraConnectDialog
 from Config import *
 
+class VideoSetting():
+    def __init__(self,video_date,video_time,skip_duration):
+        self.video_date = video_date
+        self.video_time = video_time
+        self.skip_duration = skip_duration
 
 class CameraConnectDialog(QDialog, Ui_CameraConnectDialog):
     def __init__(self, parent=None, isStreamSyncEnabled=False):
@@ -20,39 +25,41 @@ class CameraConnectDialog(QDialog, Ui_CameraConnectDialog):
         self.resWEdit.setValidator(QRegExpValidator(QRegExp("^[0-9]{1,4}$")))  # Integers 0 to 9999
         # resHEdit (resolution: height) input validation
         self.resHEdit.setValidator(QRegExpValidator(QRegExp("^[0-9]{1,4}$")))  # Integers 0 to 9999
+        # resHEdit (resolution: height) input validation
+        self.skipDuration.setValidator(QRegExpValidator(QRegExp("^(0[0-9]|1[0-9]|2[0-3])(:[0-5]\d)(:[0-5]\d)$")))  # HH:MM:SS
         # Setup capture prio combo boxes
         self.apiPreference = {'CAP_ANY': cv2.CAP_ANY,
-                              # 'CAP_VFW': cv2.CAP_VFW,
-                              # 'CAP_V4L': cv2.CAP_V4L,
-                              # 'CAP_V4L2': cv2.CAP_V4L2,
-                              # 'CAP_FIREWIRE': cv2.CAP_FIREWIRE,
-                              # 'CAP_FIREWARE': cv2.CAP_FIREWARE,
-                              # 'CAP_IEEE1394': cv2.CAP_IEEE1394,
-                              # 'CAP_DC1394': cv2.CAP_DC1394,
-                              # 'CAP_CMU1394': cv2.CAP_CMU1394,
-                              # 'CAP_QT': cv2.CAP_QT,
-                              # 'CAP_UNICAP': cv2.CAP_UNICAP,
+                              'CAP_VFW': cv2.CAP_VFW,
+                              'CAP_V4L': cv2.CAP_V4L,
+                              'CAP_V4L2': cv2.CAP_V4L2,
+                              'CAP_FIREWIRE': cv2.CAP_FIREWIRE,
+                              'CAP_FIREWARE': cv2.CAP_FIREWARE,
+                              'CAP_IEEE1394': cv2.CAP_IEEE1394,
+                              'CAP_DC1394': cv2.CAP_DC1394,
+                              'CAP_CMU1394': cv2.CAP_CMU1394,
+                              'CAP_QT': cv2.CAP_QT,
+                              'CAP_UNICAP': cv2.CAP_UNICAP,
                               'CAP_DSHOW': cv2.CAP_DSHOW,
-                              # 'CAP_PVAPI': cv2.CAP_PVAPI,
-                              # 'CAP_OPENNI': cv2.CAP_OPENNI,
-                              # 'CAP_OPENNI_ASUS': cv2.CAP_OPENNI_ASUS,
-                              # 'CAP_ANDROID': cv2.CAP_ANDROID,
-                              # 'CAP_XIAPI': cv2.CAP_XIAPI,
-                              # 'CAP_AVFOUNDATION': cv2.CAP_AVFOUNDATION,
-                              # 'CAP_GIGANETIX': cv2.CAP_GIGANETIX,
+                              'CAP_PVAPI': cv2.CAP_PVAPI,
+                              'CAP_OPENNI': cv2.CAP_OPENNI,
+                              'CAP_OPENNI_ASUS': cv2.CAP_OPENNI_ASUS,
+                              'CAP_ANDROID': cv2.CAP_ANDROID,
+                              'CAP_XIAPI': cv2.CAP_XIAPI,
+                              'CAP_AVFOUNDATION': cv2.CAP_AVFOUNDATION,
+                              'CAP_GIGANETIX': cv2.CAP_GIGANETIX,
                               'CAP_MSMF': cv2.CAP_MSMF,
-                              # 'CAP_WINRT': cv2.CAP_WINRT,
-                              # 'CAP_INTELPERC': cv2.CAP_INTELPERC,
-                              # 'CAP_OPENNI2': cv2.CAP_OPENNI2,
-                              # 'CAP_OPENNI2_ASUS': cv2.CAP_OPENNI2_ASUS,
-                              # 'CAP_GPHOTO2': cv2.CAP_GPHOTO2,
-                              # 'CAP_GSTREAMER': cv2.CAP_GSTREAMER,
-                              # 'CAP_FFMPEG': cv2.CAP_FFMPEG,
-                              # 'CAP_IMAGES': cv2.CAP_IMAGES,
-                              # 'CAP_ARAVIS': cv2.CAP_ARAVIS,
-                              # 'CAP_OPENCV_MJPEG': cv2.CAP_OPENCV_MJPEG,
-                              # 'CAP_INTEL_MFX': cv2.CAP_INTEL_MFX,
-                              # 'CAP_XINE': cv2.CAP_XINE
+                              'CAP_WINRT': cv2.CAP_WINRT,
+                              'CAP_INTELPERC': cv2.CAP_INTELPERC,
+                              'CAP_OPENNI2': cv2.CAP_OPENNI2,
+                              'CAP_OPENNI2_ASUS': cv2.CAP_OPENNI2_ASUS,
+                              'CAP_GPHOTO2': cv2.CAP_GPHOTO2,
+                              'CAP_GSTREAMER': cv2.CAP_GSTREAMER,
+                              'CAP_FFMPEG': cv2.CAP_FFMPEG,
+                              'CAP_IMAGES': cv2.CAP_IMAGES,
+                              'CAP_ARAVIS': cv2.CAP_ARAVIS,
+                              'CAP_OPENCV_MJPEG': cv2.CAP_OPENCV_MJPEG,
+                              'CAP_INTEL_MFX': cv2.CAP_INTEL_MFX,
+                              'CAP_XINE': cv2.CAP_XINE
                               }
         self.apiPreferenceComboBox.addItems(self.apiPreference.keys())
         # Setup capture prio combo boxes
@@ -172,6 +179,9 @@ class CameraConnectDialog(QDialog, Ui_CameraConnectDialog):
 
     def getEnableFrameProcessingCheckBoxState(self):
         return self.enableFrameProcessingCheckBox.isChecked()
+    
+    def getVideoSetting(self):
+        return VideoSetting(self.videoDate.text(),self.videoTime.text(),self.skipDuration.text())
 
     def setUrlMode(self, mode):
         if mode == 'device url':
@@ -266,3 +276,6 @@ class CameraConnectDialog(QDialog, Ui_CameraConnectDialog):
         self.tabLabelEdit.setText("")
         # Enable Frame Processing checkbox
         self.enableFrameProcessingCheckBox.setChecked(True)
+        #self.videoDate.setText('01/01/2000')
+        #self.videoTime.setText('12:00 AM')
+        self.skipDuration.setText('00:00:00')

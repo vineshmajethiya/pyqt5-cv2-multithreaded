@@ -1,11 +1,12 @@
 from PyQt5.QtCore import QThread, QMutex, QTime, qDebug, QMutexLocker, pyqtSignal
-from PyQt5.QtGui import QImage
+from PyQt5.QtGui import QImage, QPainter
 from queue import Queue
 import cv2
 
 from MatToQImage import matToQImage
 from Structures import *
 from Config import *
+from ObjectDetection import DeepSortApp
 
 
 class ProcessingThread(QThread):
@@ -35,9 +36,16 @@ class ProcessingThread(QThread):
         self.statsData = ThreadStatisticsData()
         self.frame = None
         self.currentFrame = None
+        self.app = DeepSortApp(parent)
+        self.parent = parent
+        self.pause = False
+        self.speed = 1
+        self.counter = 0
 
     def run(self):
         while True:
+            if self.pause:
+                continue
             ##############################
             # Stop thread if doStop=True #
             ##############################
@@ -54,7 +62,6 @@ class ProcessingThread(QThread):
             self.processingTime = self.t.elapsed()
             # Start timer (used to calculate processing rate)
             self.t.start()
-
             with QMutexLocker(self.processingMutex):
                 # Get frame from queue, store in currentFrame, set ROI
                 # self.currentFrame = Mat(self.sharedImageBuffer.getByDeviceUrl(self.deviceUrl).get().clone(),
@@ -62,6 +69,10 @@ class ProcessingThread(QThread):
                 self.currentFrame = self.sharedImageBuffer.getByDeviceUrl(self.deviceUrl).get()[
                                     self.currentROI.y():(self.currentROI.y() + self.currentROI.height()),
                                     self.currentROI.x():(self.currentROI.x() + self.currentROI.width())].copy()
+
+                if self.counter%self.speed:
+                    self.counter+=1
+                    continue
 
                 # Example of how to grab a frame from another stream (where Device Url=1)
                 # Note: This requires stream synchronization to be ENABLED (in the Options menu of MainWindow)
@@ -117,6 +128,9 @@ class ProcessingThread(QThread):
                                                   threshold2=self.imgProcSettings.cannyThreshold2,
                                                   apertureSize=self.imgProcSettings.cannyApertureSize,
                                                   L2gradient=self.imgProcSettings.cannyL2gradient)
+                
+                if self.imgProcFlags.yoloOn:
+                    self.currentFrame = self.app.process(self.currentFrame,self.sharedImageBuffer.video_date_time)
 
                 ##################################
                 # PERFORM IMAGE PROCESSING ABOVE #
@@ -127,6 +141,7 @@ class ProcessingThread(QThread):
 
                 # Inform GUI thread of new frame (QImage)
                 self.newFrame.emit(self.frame)
+                self.counter+=1
 
             # Update statistics
             self.updateFPS(self.processingTime)
@@ -179,6 +194,7 @@ class ProcessingThread(QThread):
             self.imgProcFlags.erodeOn = imgProcFlags.erodeOn
             self.imgProcFlags.flipOn = imgProcFlags.flipOn
             self.imgProcFlags.cannyOn = imgProcFlags.cannyOn
+            self.imgProcFlags.yoloOn = imgProcFlags.yoloOn
 
     def updateImageProcessingSettings(self, imgProcSettings):
         with QMutexLocker(self.processingMutex):

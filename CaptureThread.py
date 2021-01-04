@@ -6,15 +6,16 @@ import os
 
 from Structures import *
 from Config import *
+from datetime import datetime,timedelta
+import av
 
 
 class CaptureThread(QThread):
     updateStatisticsInGUI = pyqtSignal(ThreadStatisticsData)
     end = pyqtSignal()
 
-    def __init__(self, sharedImageBuffer, deviceUrl, dropFrameIfBufferFull, apiPreference, width, height, parent=None):
+    def __init__(self, sharedImageBuffer, deviceUrl, dropFrameIfBufferFull, apiPreference, width, height, setting, parent=None):
         super(CaptureThread, self).__init__(parent)
-        self.cap = cv2.VideoCapture()
         self.t = QTime()
         self.doStopMutex = QMutex()
         self.fps = Queue()
@@ -34,10 +35,28 @@ class CaptureThread(QThread):
         self.fpsSum = 0.0
         self.statsData = ThreadStatisticsData()
         self.defaultTime = 0
+        t = datetime.strptime(setting.skip_duration, '%H:%M:%S')
+        self.skip_duration = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+        self.video_date_time = datetime.strptime("{} {}".format(setting.video_date, setting.video_time), '%d/%m/%Y %H:%M:%S')
+        self.starting_time = self.video_date_time 
+        self.remain_video = None
+        self.pause = False
+
+    def update(self,frame):
+        current_frame = frame.index
+        process_time_second = round(current_frame / self.videofps)
+        self.video_date_time = self.starting_time + timedelta(seconds=process_time_second)
+        if round(current_frame%self.videofps) == 0:
+            self.remain_video = self.video_date_time - self.starting_time
+
+        self.sharedImageBuffer.video_date_time = self.video_date_time
+        self.sharedImageBuffer.remain_video = self.remain_video
 
     def run(self):
         pause = False
         while True:
+            if self.pause:
+                continue
             ################################
             # Stop thread if doStop = TRUE #
             ################################
@@ -54,18 +73,18 @@ class CaptureThread(QThread):
             self.sharedImageBuffer.sync(self.deviceUrl)
 
             # Capture frame ( if available)
-            if not self.cap.grab():
-                if pause or not self.localVideo:
-                    continue
-                # Video End
-                pause = True
+            try:
+                frame = next(self.frames)
+            except StopIteration:
+                self.doStop = True
                 self.end.emit()
                 continue
 
             # Retrieve frame
-            _, self.grabbedFrame = self.cap.retrieve()
+            self.update(frame)
+            frame = frame.to_ndarray(format='bgr24')
             # Add frame to buffer
-            self.sharedImageBuffer.getByDeviceUrl(self.deviceUrl).add(self.grabbedFrame, self.dropFrameIfBufferFull)
+            self.sharedImageBuffer.getByDeviceUrl(self.deviceUrl).add(frame, self.dropFrameIfBufferFull)
 
             self.statsData.nFramesProcessed += 1
             # Inform GUI of updated statistics
@@ -93,20 +112,28 @@ class CaptureThread(QThread):
 
     def connectToCamera(self):
         # Open camera
-        camOpenResult = self.cap.open(self._deviceUrl, self.apiPreference)
-        # Set resolution
-        if self.width != -1:
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
-        if self.height != -1:
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        # self.ctx = av.Codec('h264_cuvid', 'r').create()
+        # hwaccel = {'device_type_name': 'cuda'}
+        # self.video = av.open(self._deviceUrl,hwaccel=hwaccel)
+        self.video = av.open(self._deviceUrl)
+        streams = [s for s in self.video.streams if s.type == 'video']
+        streams = [streams[0]]
+        self.frames = self.frame_iter(self.video,streams)
+        self.total_frames = streams[0].frames
+        self.videofps = streams[0].average_rate
+        # self.ctx.extradata = streams[0].codec_context.extradata
+        # if self.skip_duration:
+        #     self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.videofps * self.skip_duration.total_seconds())
+        #     self.video_date_time = self.video_date_time + self.skip_duration
 
-        if camOpenResult:
-            try:
-                self.defaultTime = int(1000 / self.cap.get(cv2.CAP_PROP_FPS))
-            except:
-                self.defaultTime = 40
+        # Set resolution
+
+        try:
+            self.defaultTime = int(1000 / self.videofps)
+        except:
+            self.defaultTime = 40
         # Return result
-        return camOpenResult
+        return True
 
     def disconnectCamera(self):
         # Camera is connected
@@ -122,10 +149,10 @@ class CaptureThread(QThread):
         return self.cap.isOpened()
 
     def getInputSourceWidth(self):
-        return self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        return self.video.streams.video[0].width
 
     def getInputSourceHeight(self):
-        return self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        return self.video.streams.video[0].height
 
     def updateFPS(self, timeElapsed):
         # Add instantaneous FPS value to queue
@@ -148,3 +175,8 @@ class CaptureThread(QThread):
             self.fpsSum = 0.0
             # Reset sample Number
             self.sampleNumber = 0
+
+    def frame_iter(self,video,streams):
+        for packet in video.demux(streams):
+            for frame in packet.decode():
+                yield frame

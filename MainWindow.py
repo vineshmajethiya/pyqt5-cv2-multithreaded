@@ -93,7 +93,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             cameraConnectDialog.getProcessingThreadPrio(),
                             cameraConnectDialog.getEnableFrameProcessingCheckBoxState(),
                             cameraConnectDialog.getResolutionWidth(),
-                            cameraConnectDialog.getResolutionHeight()):
+                            cameraConnectDialog.getResolutionHeight(),
+                            cameraConnectDialog.getVideoSetting()):
 
                         self.cameraNum += 1
                         # Save tab label
@@ -188,11 +189,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def showAboutDialog(self):
         QMessageBox.information(self, "About",
-                                "Created by Nick D'Ademo\n\n"
-                                "Contact: nickdademo@gmail.com\n"
-                                "Website: www.nickdademo.com\n"
-                                "Version: %s\n\n"
-                                "Refactoring by Flyto\n\n" % APP_VERSION)
+                                "Created by Vinesh Majethiya\n\n"
+                                "Contact: vineshmajethiya@gmail.com\n"
+                                "Version: %s\n\n" % APP_VERSION)
 
     def getFromDictByTabIndex(self, dic, tabIndex):
         for k, v in dic.items():

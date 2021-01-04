@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QLabel, QMenu, QAction
 from PyQt5.QtCore import QPoint, pyqtSignal, Qt
-from PyQt5.QtGui import QPainter
+from PyQt5.QtGui import QPainter,QBrush, QPen, QPainter, QPolygon
 
 from Structures import *
 
@@ -130,7 +130,47 @@ class FrameLabel(QLabel):
         action.setText("Canny")
         action.setCheckable(True)
         menu_imgProc.addAction(action)
+        action = QAction(self)
+        action.setText("Yolo")
+        action.setCheckable(True)
+        menu_imgProc.addAction(action)
         menu_imgProc.addSeparator()
         action = QAction(self)
         action.setText("Settings...")
         menu_imgProc.addAction(action)
+
+
+class FrameLabel2(QLabel):
+    onMouseMoveEvent = pyqtSignal()
+    onMouseClickEvent = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super(FrameLabel2, self).__init__(parent)
+        self.mouseCursorPos = QPoint()
+        self.mouseCursorPos.setX(0)
+        self.mouseCursorPos.setY(0)
+        self.pixmap_points = []
+
+    def mouseMoveEvent(self, ev):
+        self.setMouseCursorPos(ev.pos())
+        self.onMouseMoveEvent.emit()
+
+    def setMouseCursorPos(self, data):
+        self.mouseCursorPos = data
+
+    def getMouseCursorPos(self):
+        return self.mouseCursorPos
+
+    def mousePressEvent(self, ev):
+        self.setMouseCursorPos(ev.pos())
+        self.onMouseClickEvent.emit()
+        self.draw_something()
+    
+    def draw_something(self):
+        if self.pixmap():
+            painter = QPainter(self.pixmap())
+            painter.setPen(QPen(Qt.black, 5, Qt.SolidLine))
+            painter.setBrush(QBrush(Qt.red, Qt.VerPattern)) 
+            points = QPolygon(self.pixmap_points)
+            painter.drawPolygon(points)
+            print(self.pixmap_points)

@@ -23,9 +23,9 @@ PROCESSING_FPS_STAT_QUEUE_LENGTH = 32
 CAPTURE_FPS_STAT_QUEUE_LENGTH = 32
 
 # Image buffer size
-DEFAULT_IMAGE_BUFFER_SIZE = 2
+DEFAULT_IMAGE_BUFFER_SIZE = 10
 # Drop frame if image/frame buffer is full
-DEFAULT_DROP_FRAMES = True
+DEFAULT_DROP_FRAMES = False
 # ApiPreference for OpenCv.VideoCapture
 DEFAULT_APIPREFERENCE = 'CAP_ANY'
 # Thread priorities

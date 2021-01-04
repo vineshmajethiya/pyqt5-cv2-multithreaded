@@ -10,6 +10,8 @@ class SharedImageBuffer(object):
         self.wc = QWaitCondition()
         self.imageBufferDict = dict()
         self.mutex = QMutex()
+        self.video_date_time = None
+        self.remain_video = None
 
     def add(self, deviceUrl, imageBuffer, sync=False):
         # Device stream is to be synchronized
